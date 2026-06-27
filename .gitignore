@@ -1,0 +1,41 @@
+# Secrets & local config — NEVER commit these.
+# The bearer token, recipient allowlist, and rate limits live here.
+# Commit server/config.example.json instead.
+config.json
+server/config.json
+*.local.json
+.env
+.env.*
+!.env.example
+
+# Audit log & runtime state (may contain message bodies / recipient numbers)
+*.log
+audit/
+audit.log
+*.sqlite
+*.sqlite3
+*.db
+
+# Node (Path A server)
+node_modules/
+dist/
+build/
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Android (Path B, future)
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.apk
+*.keystore
+*.jks
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
