@@ -22,6 +22,11 @@ the threat model; `server/README.md` is the install/run guide.
 There is no test framework yet; verification is done by running the server in mock
 mode and driving it with an MCP client (see how the smoke test was structured).
 
+`setup.sh` (repo root) is the one-shot Termux installer: it runs `pkg upgrade`
+(which fixes the node/OpenSSL `OSSL_PROVIDER` link error), builds, writes
+`config.json` with a token + tailnet host, and installs the Termux:Boot script for
+reboot persistence. Keep it in sync when the build/config flow changes.
+
 ## What this is
 
 An MCP server that sends SMS through the owner's own Android phone, from their real

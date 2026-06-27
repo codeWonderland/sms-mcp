@@ -16,29 +16,53 @@ your laptop) reaches it over Tailscale; you keep the auth and safety controls.
   the same tailnet. (Or run laptop-side over loopback via an SSH tunnel — see below.)
 - Node 18+ on the phone (`pkg install nodejs`).
 
-## Install (on the phone, in Termux)
+## Quick install (recommended)
+
+A single script does the package upgrade, build, config, and reboot-persistence
+setup. **On the phone, in Termux:**
 
 ```sh
-# Termux:API bridge + node
+curl -fsSL https://raw.githubusercontent.com/codeWonderland/sms-mcp/main/setup.sh -o setup.sh
+bash setup.sh
+```
+
+It will:
+- `pkg upgrade` (this also fixes the common node/OpenSSL link error — see
+  [Troubleshooting](#troubleshooting)) and install `termux-api`, `nodejs`, `git`.
+- Clone + build the server.
+- Generate a bearer token and write it + your Tailscale IP into `config.json`
+  (it prompts for the IP; an existing `config.json` is never overwritten).
+- Install the Termux:Boot script so the server restarts on reboot.
+- Print the exact `claude mcp add` command for your laptop, token included.
+
+It can't do three Android-side things for you — it'll remind you at the end:
+open the **Termux:Boot** app once, set Termux to **Unrestricted** battery, and
+edit your **allowlist**. Run `termux-setup-storage` once to grant SMS/contacts
+permissions if Android doesn't prompt.
+
+**Before trusting it, verify the SMS + contacts bridge works:**
+
+```sh
+termux-sms-send -n +1XXXXXXXXXX "test from termux"   # should send
+termux-contact-list | head                           # should print JSON
+```
+
+### Manual install
+
+If you'd rather not run the script:
+
+```sh
+pkg update && pkg upgrade -y          # upgrade first (fixes node/OpenSSL — see Troubleshooting)
 pkg install termux-api nodejs git
-termux-setup-storage           # grant Termux storage/SMS/contacts perms when prompted
+termux-setup-storage
 
 git clone https://github.com/codeWonderland/sms-mcp.git
 cd sms-mcp/server
-npm install
-npm run build
+npm install && npm run build
 
-# Generate a bearer token and create your config
 cp config.example.json config.json
-npm run gen-token              # prints a token — paste it into config.json
-nano config.json               # set bearerToken, host, and your allowlist
-```
-
-Verify the SMS + contacts bridge works before wiring up MCP:
-
-```sh
-termux-sms-send -n +15555550123 "test from termux"   # should send
-termux-contact-list | head                            # should print JSON
+npm run gen-token                     # paste the token into config.json
+nano config.json                      # set bearerToken, host, allowLanBind, allowlist
 ```
 
 ## Configure
@@ -69,8 +93,58 @@ npm start
 # [...] sms-mcp listening {"url":"http://100.x.y.z:8765/mcp", ...}
 ```
 
-To survive reboots/process death, install **Termux:Boot** and acquire a wake-lock
-(`termux-wake-lock`); add a boot script that runs `npm start` from this directory.
+## Survive reboots (Termux:Boot)
+
+`setup.sh` already installs a boot script at `~/.termux/boot/start-sms-mcp.sh`
+that grabs a wake-lock and runs the server under a crash-restart loop. To make
+Android actually honor it, do these once (a script can't):
+
+1. **Install Termux:Boot from F-Droid and open it once** — boot scripts are
+   ignored until the app has been launched at least once.
+2. **Exempt Termux from battery optimization:** Settings → Apps → Termux →
+   Battery → **Unrestricted** (do the same for Termux:API). Without this, Android
+   kills the server after a while.
+
+Test it: reboot the phone, wait ~1 minute, then from the laptop
+`curl http://<tailnet-ip>:8765/health`. After a reboot the server runs headless —
+watch it with `tail -f ~/sms-mcp/server/state/boot.log`.
+
+Setting it up manually instead? Create that file yourself:
+
+```sh
+mkdir -p ~/.termux/boot
+cat > ~/.termux/boot/start-sms-mcp.sh <<'EOF'
+#!/data/data/com.termux/files/usr/bin/sh
+termux-wake-lock
+cd ~/sms-mcp/server || exit 1
+while true; do
+  node dist/index.js >> ~/sms-mcp/server/state/boot.log 2>&1
+  sleep 5
+done
+EOF
+chmod +x ~/.termux/boot/start-sms-mcp.sh
+```
+
+## Troubleshooting
+
+**`CANNOT LINK EXECUTABLE "node": cannot link symbol "OSSL_PROVIDER_..."`** — your
+`node` binary is newer than the installed OpenSSL because `pkg update` only
+refreshes the index; it doesn't upgrade installed packages. Fix:
+
+```sh
+pkg upgrade -y          # brings OpenSSL up to what node needs
+node -v                 # should print a version now
+# still broken? force a clean relink:
+pkg reinstall nodejs
+```
+
+**Server refuses to start: "host is … (not loopback)"** — you set `host` to a
+Tailscale/LAN IP. That's intended, but you must also set `"allowLanBind": true`
+to acknowledge it. The server will still never bind `0.0.0.0`.
+
+**`termux-sms-send`/`termux-contact-list` do nothing or error** — Termux and
+Termux:API must both come from **F-Droid** (not Play Store), and Termux:API needs
+SMS + Contacts permissions (Settings → Apps → Termux:API → Permissions).
 
 ## Approving messages (the out-of-band gate)
 

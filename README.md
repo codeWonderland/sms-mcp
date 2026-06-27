@@ -14,6 +14,14 @@ the two implementation paths, and the open decisions.
 - SMS/MMS only (no RCS — OS limit). Conversational 1:1 client texting, not outreach.
 
 ## Status
-**Path A server is built** and tested end-to-end (mock backend). To install it on
-your own phone, follow [`server/README.md`](./server/README.md). Path B (native
-Kotlin app) remains future work.
+**Path A server is built** and tested end-to-end. Path B (native Kotlin app)
+remains future work.
+
+## Install (on your Android phone, in Termux)
+```sh
+curl -fsSL https://raw.githubusercontent.com/codeWonderland/sms-mcp/main/setup.sh -o setup.sh
+bash setup.sh
+```
+This upgrades packages (fixing the common node/OpenSSL error), builds the server,
+writes a config with a fresh token, and sets up reboot persistence. Full guide,
+manual steps, and troubleshooting in [`server/README.md`](./server/README.md).
