@@ -116,13 +116,33 @@ if [ "$IS_TERMUX" -eq 1 ]; then
 termux-wake-lock
 
 LOGDIR="$SERVER_DIR/state"
+LOG="\$LOGDIR/boot.log"
+MAXSIZE=1048576   # rotate boot.log at ~1 MiB
+KEEP=3            # keep boot.log.1 .. boot.log.3
 mkdir -p "\$LOGDIR"
 cd "$SERVER_DIR" || exit 1
 
-# Supervise: if the server ever exits, restart it after 5s.
+# Size-based log rotation. The 'node ... >> LOG' redirect reopens the file each
+# loop iteration, so rotating here (between runs) is safe — the next run writes
+# to a fresh boot.log. Matters most when the server is crash-looping.
+rotate() {
+  [ -f "\$LOG" ] || return 0
+  size=\$(wc -c < "\$LOG" 2>/dev/null || echo 0)
+  [ "\$size" -ge "\$MAXSIZE" ] || return 0
+  i=\$KEEP
+  while [ "\$i" -gt 1 ]; do
+    prev=\$((i - 1))
+    [ -f "\$LOG.\$prev" ] && mv "\$LOG.\$prev" "\$LOG.\$i"
+    i=\$prev
+  done
+  mv "\$LOG" "\$LOG.1"
+}
+
+# Supervise: rotate, run the server, restart it 5s after any exit.
 while true; do
-  node dist/index.js >> "\$LOGDIR/boot.log" 2>&1
-  echo "[\$(date)] sms-mcp exited, restarting in 5s" >> "\$LOGDIR/boot.log"
+  rotate
+  node dist/index.js >> "\$LOG" 2>&1
+  echo "[\$(date)] sms-mcp exited, restarting in 5s" >> "\$LOG"
   sleep 5
 done
 BOOT

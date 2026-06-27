@@ -116,14 +116,28 @@ mkdir -p ~/.termux/boot
 cat > ~/.termux/boot/start-sms-mcp.sh <<'EOF'
 #!/data/data/com.termux/files/usr/bin/sh
 termux-wake-lock
-cd ~/sms-mcp/server || exit 1
+LOG="$HOME/sms-mcp/server/state/boot.log"
+MAXSIZE=1048576; KEEP=3
+mkdir -p "$(dirname "$LOG")"
+cd "$HOME/sms-mcp/server" || exit 1
+rotate() {
+  [ -f "$LOG" ] || return 0
+  [ "$(wc -c < "$LOG" 2>/dev/null || echo 0)" -ge "$MAXSIZE" ] || return 0
+  i=$KEEP; while [ "$i" -gt 1 ]; do p=$((i-1)); [ -f "$LOG.$p" ] && mv "$LOG.$p" "$LOG.$i"; i=$p; done
+  mv "$LOG" "$LOG.1"
+}
 while true; do
-  node dist/index.js >> ~/sms-mcp/server/state/boot.log 2>&1
+  rotate
+  node dist/index.js >> "$LOG" 2>&1
   sleep 5
 done
 EOF
 chmod +x ~/.termux/boot/start-sms-mcp.sh
 ```
+
+`boot.log` is rotated at ~1 MiB, keeping 3 old files (so ~4 MiB max). Rotation
+happens between restarts, which is exactly when a crash-loop would otherwise
+flood the log.
 
 ## Troubleshooting
 
