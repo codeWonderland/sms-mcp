@@ -1,0 +1,35 @@
+{
+  "name": "sms-mcp-server",
+  "version": "0.1.0",
+  "description": "Path A: hardened Node MCP server (runs in Termux) that sends SMS through your own Android phone via termux-sms-send.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "sms-mcp": "dist/index.js",
+    "sms-mcp-confirm": "dist/cli/confirm.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "confirm": "node dist/cli/confirm.js",
+    "confirm:dev": "tsx src/cli/confirm.ts",
+    "gen-token": "node dist/scripts/gen-token.js",
+    "gen-token:dev": "tsx src/scripts/gen-token.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "express": "^4.21.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

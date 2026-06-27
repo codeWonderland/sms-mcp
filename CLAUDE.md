@@ -4,14 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-**Design done, build not started.** The repo currently contains only `DESIGN.md`,
-`README.md`, and an empty `server/` directory. There is no source code, no
-`package.json`, and no build/lint/test tooling yet. Do not invent commands — none
-exist until the Path A server is scaffolded.
+**Path A server is implemented** in `server/` (TypeScript, MCP SDK over Streamable
+HTTP) and verified end-to-end against the mock backend. Path B (native Kotlin app)
+is still future work. `DESIGN.md` remains the source of truth for architecture and
+the threat model; `server/README.md` is the install/run guide.
 
-**`DESIGN.md` is the source of truth.** Read it in full before any build work; it
-holds the architecture, auth model, tool surface, open decisions, and the build
-order. This file summarizes it but `DESIGN.md` governs.
+## Commands (run from `server/`)
+
+- `npm install` then `npm run build` — compile TS to `dist/`.
+- `npm start` — run the server (reads `./config.json`; override path with `SMS_MCP_CONFIG`).
+- `npm run dev` — tsx watch mode.
+- `npm run typecheck` — `tsc --noEmit`.
+- `npm run gen-token` — print a fresh 32-byte bearer token.
+- `npm run confirm -- <list|approve|reject|approve-all> [id]` — the out-of-band approval CLI.
+- `SMS_MCP_BACKEND=mock npm start` — run without sending real SMS (dev/E2E).
+
+There is no test framework yet; verification is done by running the server in mock
+mode and driving it with an MCP client (see how the smoke test was structured).
 
 ## What this is
 
@@ -75,9 +84,15 @@ flag — it adds `READ_SMS` privacy surface.
 
 Config (allowlist, token, rate limits) is planned to live in `server/config.example.json`.
 
-## Open decisions (resolve at build start, see DESIGN.md §6)
+## Open decisions — resolved (DESIGN.md §6)
 
-- Tailscale required day one, or LAN/home-only? (Leaning: Tailscale from the start.)
-- Confirm-before-send: always, or only for non-allowlisted recipients?
-- Audit log stores message bodies, or just hashes + metadata?
-- Inbound reading in v1? (Probably v2.)
+All four are now config-driven with safe defaults; nothing is hard-locked:
+
+- **Network bind** — `host` config, defaults to loopback. Code *refuses to start* on
+  a non-loopback bind without `allowLanBind: true`, and never on `0.0.0.0`. Tailscale
+  IP is the intended non-loopback value.
+- **Confirm-before-send** — `confirmMode: "new" | "always" | "off"`, default `"new"`.
+  Approval is **out-of-band** via the `sms-mcp-confirm` CLI (a human gate the
+  LLM-driven client cannot perform), not an MCP tool.
+- **Audit bodies** — `audit.logBodies`, default `false` (sha256 hash + length only).
+- **Inbound reading** — not in v1 (no `sms.inbox` tool).

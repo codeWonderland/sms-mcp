@@ -12,6 +12,10 @@ server/config.json
 *.log
 audit/
 audit.log
+state/
+server/state/
+*.jsonl
+pending.json
 *.sqlite
 *.sqlite3
 *.db

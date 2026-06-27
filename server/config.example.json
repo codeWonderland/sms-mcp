@@ -1,0 +1,24 @@
+{
+  "host": "127.0.0.1",
+  "port": 8765,
+  "allowLanBind": false,
+
+  "bearerToken": "REPLACE_WITH_LONG_RANDOM_TOKEN",
+
+  "allowlistEnforced": true,
+  "allowlist": [
+    { "name": "Test Client", "number": "+15555550123" }
+  ],
+
+  "confirmMode": "new",
+
+  "rateLimit": { "perMinute": 5, "perHour": 30 },
+
+  "audit": { "logBodies": false },
+
+  "backend": "termux",
+  "sim": null,
+  "notifyOnPending": true,
+
+  "dataDir": "state"
+}

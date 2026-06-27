@@ -14,4 +14,6 @@ the two implementation paths, and the open decisions.
 - SMS/MMS only (no RCS — OS limit). Conversational 1:1 client texting, not outreach.
 
 ## Status
-Design done; build not started. Next step is the build order in DESIGN.md §8.
+**Path A server is built** and tested end-to-end (mock backend). To install it on
+your own phone, follow [`server/README.md`](./server/README.md). Path B (native
+Kotlin app) remains future work.
